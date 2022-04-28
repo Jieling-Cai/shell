@@ -1,5 +1,5 @@
 # shell
-A linux shell that supports executing piping commands and returns the status of last command. 
+A Linux shell that supports executing piping commands and returns the status of the last command.
 
 Usage:
 ```bash
