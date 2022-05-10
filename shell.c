@@ -4,9 +4,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <errno.h>
-#include <strings.h>
 #include <sys/types.h>
-#include <stdio.h>
 
 #define NUM_PIPE 29  //the maximum number of pipes, which equals to the number of total child processes-1
 #define NUM_AGUMENT 100 //the maximum number of each command arguments
@@ -37,7 +35,7 @@ void split_command(char *string, COMMAND* comm_line) {
     // execute the command
     if (execvp(comm_line->header, comm_line->com_arg) == -1) {
         printf("jsh error: Command not found: %s\n", comm_line->header);
-        exit(EXIT_FAILURE);
+        exit(127);
     }
     exit(EXIT_SUCCESS);
 }
@@ -65,7 +63,8 @@ int main(int argc, char* argv[])
     int fd[NUM_PIPE][2];
     char * comm_str = (char *)malloc(INPUT_SIZE * sizeof(char));
     char *commands[NUM_COMMAND]; //array to store commands seperated by pipes
-    int pid;
+    int pid; 
+    int last_pid; //process id of the last command
 
     while (1){
         printf("jsh$ ");
@@ -119,35 +118,30 @@ int main(int argc, char* argv[])
                 split_command(commands[j], comm_line);
                 free(comm_line);
             }
+            else if(j==num_commands-1) //if in the last command's parent process
+            {  
+                last_pid = pid;
+            }
         }
         
         //close all the pipes
         close_pipes(num_commands, fd);    
         //wait all child processes
         int wstatus;
-        int wc;
+        int wpid;
         int statuscode;
-        int last_pid=-1; //process id of the last command
         int last_status; //status of the last command
         
-        while((wc=wait(&wstatus))!=-1){
+        while((wpid=wait(&wstatus))!=-1){
             statuscode = WEXITSTATUS(wstatus);
-            if(wc>last_pid){
-                last_pid=wc; 
+            if(wpid==last_pid){
                 last_status=statuscode;
             }
         }
 
-        if(last_status==0){
-            printf("jsh status: %d\n", last_status);
-        }else if(last_status==1){
-            printf("jsh status: 127\n");
-        }
-        else{
-            printf("jsh status: %d\n", last_status);
-        }
+        printf("jsh status: %d\n", last_status);
+        
     }
     free(comm_str);
     return 0;
 }
-
